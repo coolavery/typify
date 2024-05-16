@@ -1745,9 +1745,17 @@ impl TypeSpace {
             self.convert_schema_object(inner_type_name, original_schema, &type_schema)?;
 
         // Make sure all the values are valid.
-        enum_values
+        let enum_values: Vec<serde_json::Value> = enum_values
             .iter()
-            .try_for_each(|value| type_entry.validate_value(self, value).map(|_| ()))?;
+            .filter(|value| {
+                if let Err(_) = type_entry.validate_value(&self, &value) {
+                    println!("filter value {value:#?}");
+                    return false;
+                }
+                true
+            })
+            .cloned()
+            .collect();
 
         let type_id = self.assign_type(type_entry);
 
@@ -1756,7 +1764,7 @@ impl TypeSpace {
             type_name,
             metadata,
             type_id,
-            enum_values,
+            enum_values.as_slice(),
             original_schema.clone(),
         );
 
